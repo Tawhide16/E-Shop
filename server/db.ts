@@ -3,19 +3,26 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/eshop';
+const MONGODB_URI = process.env.MONGODB_URI || (process.env.VERCEL ? '' : 'mongodb://127.0.0.1:27017/eshop');
 
 let isConnected = false;
 
 export async function connectToDatabase(): Promise<boolean> {
-  if (isConnected) {
+  if (isConnected && mongoose.connection.readyState === 1) {
     return true;
+  }
+
+  if (!MONGODB_URI) {
+    console.warn('⚠️ MONGODB_URI environment variable is not defined on Vercel. Running in fallback mode.');
+    isConnected = false;
+    return false;
   }
 
   try {
     console.log(`🔌 Attempting to connect to MongoDB at: ${MONGODB_URI.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@')}`);
     await mongoose.connect(MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 4000,
+      connectTimeoutMS: 4000,
     });
     isConnected = true;
     console.log('✅ Connected successfully to MongoDB!');

@@ -49,8 +49,9 @@ app.use(async (_req, _res, next) => {
   next();
 });
 
-// Mount API routes
+// Mount API routes (both /api and / so rewrites work seamlessly)
 app.use('/api', apiRouter);
+app.use('/', apiRouter);
 
 // Auto-seed database if empty
 export async function autoSeedDatabase() {
