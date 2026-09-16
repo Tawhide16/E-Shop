@@ -1,0 +1,6 @@
+{
+  "name": "Gymshark Activewear E-Commerce & Admin CMS",
+  "description": "Full-featured Gymwear E-commerce Storefront with drag-and-drop Visual Homepage Builder, Product Catalog, Order & Inventory Management, and Real-time CMS.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
