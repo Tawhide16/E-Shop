@@ -9,6 +9,7 @@ import { MediaLibraryTab } from './MediaLibraryTab';
 import { SEOTab } from './SEOTab';
 import { ThemeTab } from './ThemeTab';
 import { AdminUsersTab } from './AdminUsersTab';
+import { NavigationTab } from './NavigationTab';
 import gsap from 'gsap';
 import { 
   LayoutDashboard, 
@@ -31,7 +32,8 @@ import {
   Sparkles,
   Home,
   Database,
-  LogOut
+  LogOut,
+  Menu
 } from 'lucide-react';
 
 export const AdminLayout: React.FC = () => {
@@ -62,6 +64,7 @@ export const AdminLayout: React.FC = () => {
   const navItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'homepage-builder', label: 'Homepage Builder', icon: Layers, badge: 'CMS' },
+    { id: 'navigation', label: 'Navbar & Menus', icon: Menu, badge: 'Nav' },
     { id: 'products', label: 'Product Catalog', icon: Package },
     { id: 'orders', label: 'Orders & Shipping', icon: ShoppingBag },
     { id: 'marketing', label: 'Marketing & Coupons', icon: Tag },
@@ -261,6 +264,7 @@ export const AdminLayout: React.FC = () => {
         <main ref={mainContentRef} className="p-6 flex-1 overflow-y-auto">
           {activeAdminTab === 'overview' && <OverviewTab />}
           {activeAdminTab === 'homepage-builder' && <HomepageBuilderTab />}
+          {activeAdminTab === 'navigation' && <NavigationTab />}
           {activeAdminTab === 'products' && <ProductsTab />}
           {activeAdminTab === 'orders' && <OrdersTab />}
           {activeAdminTab === 'marketing' && <MarketingTab />}

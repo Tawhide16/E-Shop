@@ -11,26 +11,26 @@ export const SEOMeta: React.FC = () => {
   } = useStore();
 
   useEffect(() => {
-    let title = 'Gymshark Official Store | Premium Activewear & Gym Clothing';
-    let description = seoSettings?.metaDescription || 'Shop Gymshark workout clothing, gym wear & fitness apparel. Fast delivery across Bangladesh with bKash, Nagad, and Cash on Delivery.';
+    let title = 'lox.bd | Official Store';
+    let description = seoSettings?.metaDescription || 'Shop lox.bd workout clothing, gym wear & fitness apparel. Fast delivery across Bangladesh with bKash, Nagad, and Cash on Delivery.';
     let keywords = Array.isArray(seoSettings?.keywords) 
       ? seoSettings.keywords.join(', ') 
       : typeof seoSettings?.keywords === 'string'
       ? seoSettings.keywords
-      : 'gymshark, gymwear, activewear, fitness apparel, bangladesh, workout clothes, sports bra, gym leggings';
+      : 'lox.bd, gymwear, activewear, fitness apparel, bangladesh, workout clothes, sports bra, gym leggings';
     let ogImage = 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1200&q=80';
     let pageType = 'website';
     let jsonLdData: any = null;
 
     if (activeView === 'admin') {
-      title = 'Admin CMS Dashboard | Gymshark E-Commerce';
-      description = 'Manage Gymshark products, orders, homepage CMS blocks, marketing coupons, and SEO settings.';
+      title = 'lox.bd - Admin CMS Dashboard';
+      description = 'Manage lox.bd products, orders, homepage CMS blocks, marketing coupons, and SEO settings.';
     } else {
       if (activeStorefrontPage === 'product-detail') {
         const product = products.find(p => p.id === selectedProductId) || products[0];
         if (product) {
-          title = `${product.name} - Gymshark Official Bangladesh`;
-          description = `${product.description || 'Elevate your workout with Gymshark fitness gear.'} Price: $${product.price} USD (৳${Math.round(product.price * 120)} BDT). Available with fast shipping.`;
+          title = `${product.name} | lox.bd`;
+          description = `${product.description || 'Elevate your workout with lox.bd fitness gear.'} Price: $${product.price} USD (৳${Math.round(product.price * 120)} BDT). Available with fast shipping.`;
           if (product.images && product.images[0]) {
             ogImage = product.images[0];
           }
@@ -46,7 +46,7 @@ export const SEOMeta: React.FC = () => {
             "sku": product.sku || product.id,
             "brand": {
               "@type": "Brand",
-              "name": "Gymshark"
+              "name": "lox.bd"
             },
             "offers": {
               "@type": "Offer",
@@ -58,7 +58,7 @@ export const SEOMeta: React.FC = () => {
               "availability": product.inStock !== false ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
               "seller": {
                 "@type": "Organization",
-                "name": "Gymshark Bangladesh"
+                "name": "lox.bd"
               }
             },
             "aggregateRating": {
@@ -69,49 +69,32 @@ export const SEOMeta: React.FC = () => {
           };
         }
       } else if (activeStorefrontPage === 'checkout') {
-        title = 'Fast & Secure Checkout | Gymshark Bangladesh';
-        description = 'Complete your Gymshark workout wear order with instant bKash, Nagad, Rocket, Cards, or Cash on Delivery.';
+        title = 'Fast & Secure Checkout | lox.bd';
+        description = 'Complete your lox.bd workout wear order with instant bKash, Nagad, Rocket, Cards, or Cash on Delivery.';
       } else if (activeStorefrontPage === 'category') {
-        title = 'Gymwear & Activewear Collection | Gymshark Bangladesh';
+        title = 'Collection | lox.bd';
         description = 'Browse high-performance workout leggings, sports bras, hoodies, shorts and training t-shirts.';
+      } else if (activeStorefrontPage === 'shop') {
+        title = 'All Products | lox.bd';
       } else {
-        // Home page WebSite + Organization schema
-        jsonLdData = {
-          "@context": "https://schema.org",
-          "@graph": [
-            {
-              "@type": "Organization",
-              "@id": "https://gymshark.com/#organization",
-              "name": "Gymshark Bangladesh",
-              "url": window.location.origin,
-              "logo": "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=400&q=80",
-              "description": "Official Gymshark store servicing Bangladesh with high performance activewear.",
-              "sameAs": [
-                "https://facebook.com/gymshark",
-                "https://instagram.com/gymshark"
-              ]
-            },
-            {
-              "@type": "WebSite",
-              "@id": "https://gymshark.com/#website",
-              "url": window.location.origin,
-              "name": "Gymshark Official Store",
-              "publisher": {
-                "@id": "https://gymshark.com/#organization"
-              },
-              "potentialAction": {
-                "@type": "SearchAction",
-                "target": `${window.location.origin}/search?q={search_term_string}`,
-                "query-input": "required name=search_term_string"
-              }
-            }
-          ]
-        };
+        title = seoSettings?.metaTitle && !seoSettings.metaTitle.includes('Gymshark')
+          ? seoSettings.metaTitle
+          : 'lox.bd | Official Store';
       }
     }
 
     // Update document title
     document.title = title;
+
+    // Ensure favicon is lox.bd
+    let faviconLink = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+    if (!faviconLink) {
+      faviconLink = document.createElement('link');
+      faviconLink.setAttribute('rel', 'icon');
+      document.head.appendChild(faviconLink);
+    }
+    faviconLink.setAttribute('type', 'image/svg+xml');
+    faviconLink.setAttribute('href', '/favicon.svg');
 
     // Helper to set or create meta tag
     const setMetaTag = (selector: string, attrName: string, attrVal: string, contentVal: string) => {
@@ -128,7 +111,7 @@ export const SEOMeta: React.FC = () => {
     setMetaTag('meta[name="description"]', 'name', 'description', description);
     setMetaTag('meta[name="keywords"]', 'name', 'keywords', keywords);
     setMetaTag('meta[name="robots"]', 'name', 'robots', 'index, follow');
-    setMetaTag('meta[name="author"]', 'name', 'author', 'Gymshark Ltd.');
+    setMetaTag('meta[name="author"]', 'name', 'author', 'lox.bd');
 
     // Open Graph Meta Tags
     setMetaTag('meta[property="og:title"]', 'property', 'og:title', title);
@@ -136,7 +119,7 @@ export const SEOMeta: React.FC = () => {
     setMetaTag('meta[property="og:image"]', 'property', 'og:image', ogImage);
     setMetaTag('meta[property="og:type"]', 'property', 'og:type', pageType);
     setMetaTag('meta[property="og:url"]', 'property', 'og:url', window.location.href);
-    setMetaTag('meta[property="og:site_name"]', 'property', 'og:site_name', 'Gymshark Bangladesh');
+    setMetaTag('meta[property="og:site_name"]', 'property', 'og:site_name', 'lox.bd');
     setMetaTag('meta[property="og:locale"]', 'property', 'og:locale', 'en_US');
 
     // Twitter Card Tags

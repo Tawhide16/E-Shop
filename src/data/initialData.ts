@@ -632,17 +632,6 @@ export const INITIAL_SECTIONS: SectionConfig[] = [
     metrics: { views: 48900, clicks: 4910, ctr: 10.04 }
   },
   {
-    id: 'sec-category-directory',
-    type: 'category_directory',
-    title: 'Category Directory',
-    enabled: true,
-    order: 8,
-    settings: {},
-    styles: {
-      paddingY: 'small'
-    }
-  },
-  {
     id: 'sec-editorial',
     type: 'editorial',
     title: 'WORKOUT CLOTHES & GYM CLOTHES',
@@ -920,11 +909,11 @@ export const INITIAL_MEDIA: MediaAsset[] = [
 ];
 
 export const INITIAL_SEO: SEOSettings = {
-  metaTitle: 'Gym Clothing & Activewear | Gymshark Official Store',
-  metaDescription: 'Shop Gymshark gym clothing and activewear. High performance leggings, sports bras, workout tops, hoodies and joggers engineered for your best lifting session.',
-  keywords: 'gym clothing, activewear, leggings, sports bras, workout shirts, gymshark, gymwear',
+  metaTitle: 'lox.bd | Official Store - Premium Activewear & Gym Clothing',
+  metaDescription: 'Shop official lox.bd workout clothing and activewear in Bangladesh. High performance gym apparel with fast local delivery and bKash/Nagad checkout.',
+  keywords: 'lox.bd, gym clothing, activewear, leggings, sports bras, workout shirts, gymwear',
   ogImage: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&q=80&w=1200',
-  canonicalUrl: 'https://mygymwear.ai.studio',
+  canonicalUrl: 'https://lox.bd',
   allowIndexing: true
 };
 
@@ -943,8 +932,8 @@ export const INITIAL_THEME: GlobalThemeSettings = {
 export const INITIAL_ADMIN_USERS: AdminUser[] = [
   {
     id: 'user-1',
-    name: 'Tawhid Ehsan',
-    email: 'tawhideh.b10@gmail.com',
+    name: 'Lox Admin',
+    email: 'lox.bd0.1@gmail.com',
     role: 'Super Admin',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200'
   },

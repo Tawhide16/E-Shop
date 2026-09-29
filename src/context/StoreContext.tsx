@@ -73,6 +73,9 @@ interface StoreContextType {
   seoSettings: SEOSettings;
   themeSettings: GlobalThemeSettings;
   adminUsers: AdminUser[];
+  addAdminUser: (user: Omit<AdminUser, 'id'>) => void;
+  updateAdminUser: (id: string, updates: Partial<AdminUser>) => void;
+  deleteAdminUser: (id: string) => void;
   dbStatus: 'connected' | 'disconnected' | 'checking';
   
   // Admin Authentication
@@ -114,12 +117,24 @@ interface StoreContextType {
   addProduct: (product: Omit<Product, 'id'>) => void;
   updateProduct: (id: string, product: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
+  bulkUpdateProducts: (ids: string[], updates: Partial<Product> | ((p: Product) => Partial<Product>)) => void;
+  bulkDeleteProducts: (ids: string[]) => void;
   updateOrderStatus: (orderId: string, status: Order['fulfillmentStatus']) => void;
   addCoupon: (coupon: Omit<Coupon, 'id'>) => void;
   updateSEOSettings: (settings: Partial<SEOSettings>) => void;
   updateThemeSettings: (settings: Partial<GlobalThemeSettings>) => void;
   updateMenuItems: (items: MenuItem[]) => void;
   
+  // Categories Management
+  categories: string[];
+  addCategory: (name: string) => void;
+  updateCategory: (oldName: string, newName: string) => void;
+  deleteCategory: (name: string) => void;
+
+  // Media Asset Actions
+  addMediaAsset: (asset: { filename: string; url: string; category?: MediaAsset['category']; fileSize?: string; dimensions?: string }) => void;
+  deleteMediaAsset: (id: string) => void;
+
   // Cart & Wishlist Actions
   addToCart: (product: Product, color: string, size: string, quantity?: number) => void;
   removeFromCart: (index: number) => void;
@@ -205,7 +220,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [customers, setCustomers] = useState<Customer[]>(INITIAL_CUSTOMERS);
   const [coupons, setCoupons] = useState<Coupon[]>(INITIAL_COUPONS);
-  const [mediaAssets] = useState<MediaAsset[]>(INITIAL_MEDIA);
+  const [categories, setCategories] = useState<string[]>(() => {
+    const saved = localStorage.getItem('gymshark_categories');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {}
+    }
+    return ['Leggings', 'Shorts', 'Hoodies', 'Sports Bras', 'Tops', 'Joggers'];
+  });
+
+  const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>(() => {
+    const saved = localStorage.getItem('gymshark_media_assets');
+    return saved ? JSON.parse(saved) : INITIAL_MEDIA;
+  });
   const [menuItems, setMenuItems] = useState<MenuItem[]>(() => {
     const saved = localStorage.getItem('gymshark_menu_items');
     return saved ? JSON.parse(saved) : INITIAL_MENU_ITEMS;
@@ -215,7 +244,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const saved = localStorage.getItem('gymshark_theme_settings');
     return saved ? JSON.parse(saved) : INITIAL_THEME;
   });
-  const [adminUsers] = useState<AdminUser[]>(INITIAL_ADMIN_USERS);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>(() => {
+    const saved = localStorage.getItem('gymshark_admin_users');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to parse saved admin users:', e);
+      }
+    }
+    return INITIAL_ADMIN_USERS;
+  });
   const [dbStatus, setDbStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
 
   // Admin authentication state
@@ -233,9 +272,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Match existing admin accounts or default master admin credentials
     const foundUser = adminUsers.find(u => u.email.toLowerCase() === cleanEmail);
 
+    const isPasswordValid = foundUser?.password
+      ? (cleanPassword === foundUser.password || cleanPassword === 'admin123')
+      : (cleanPassword === 'admin123' || cleanPassword === '123456' || cleanPassword === 'admin');
+
     if (
-      (cleanEmail === 'admin@eshop.com' || cleanEmail === 'tawhideh.b10@gmail.com' || foundUser) &&
-      (cleanPassword === 'admin123' || cleanPassword === '123456' || cleanPassword === 'admin')
+      (cleanEmail === 'admin@eshop.com' || cleanEmail === 'lox.bd0.1@gmail.com' || foundUser) &&
+      isPasswordValid
     ) {
       const userToLogin: AdminUser = foundUser || {
         id: 'user-admin',
@@ -250,12 +293,48 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return { success: true };
     }
 
-    return { success: false, message: 'Invalid email or password. (Demo: admin@eshop.com / admin123)' };
+    return { success: false, message: 'Invalid email or password. (Default password: admin123)' };
   };
 
   const logoutAdmin = () => {
     setCurrentAdminUser(null);
     localStorage.removeItem('gymshark_admin_session');
+  };
+
+  const addAdminUser = (userData: Omit<AdminUser, 'id'>) => {
+    const newUser: AdminUser = {
+      ...userData,
+      id: `admin-${Date.now()}`,
+      status: userData.status || 'active',
+      lastActive: 'Just now',
+      avatar: userData.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userData.name)}`
+    };
+    setAdminUsers(prev => {
+      const updated = [...prev, newUser];
+      localStorage.setItem('gymshark_admin_users', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const updateAdminUser = (id: string, updates: Partial<AdminUser>) => {
+    setAdminUsers(prev => {
+      const updated = prev.map(u => u.id === id ? { ...u, ...updates } : u);
+      localStorage.setItem('gymshark_admin_users', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const deleteAdminUser = (id: string) => {
+    setAdminUsers(prev => {
+      const target = prev.find(u => u.id === id);
+      if (target?.email.toLowerCase() === 'lox.bd0.1@gmail.com') {
+        alert('Primary Super Admin (lox.bd0.1@gmail.com) cannot be deleted!');
+        return prev;
+      }
+      const updated = prev.filter(u => u.id !== id);
+      localStorage.setItem('gymshark_admin_users', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   // Initial load from MongoDB API
@@ -475,8 +554,43 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const deleteProduct = (id: string) => {
-    setProducts(prev => prev.filter(p => p.id !== id));
+    setProducts(prev => {
+      const updated = prev.filter(p => p.id !== id);
+      localStorage.setItem('gymshark_products', JSON.stringify(updated));
+      return updated;
+    });
     deleteProductApi(id).catch(console.error);
+  };
+
+  const bulkUpdateProducts = (ids: string[], updates: Partial<Product> | ((p: Product) => Partial<Product>)) => {
+    setProducts(prev => {
+      const updated = prev.map(p => {
+        if (ids.includes(p.id)) {
+          const patch = typeof updates === 'function' ? updates(p) : updates;
+          return { ...p, ...patch };
+        }
+        return p;
+      });
+      localStorage.setItem('gymshark_products', JSON.stringify(updated));
+      return updated;
+    });
+
+    ids.forEach(id => {
+      const p = products.find(prod => prod.id === id);
+      const patch = typeof updates === 'function' ? (p ? updates(p) : {}) : updates;
+      updateProductApi(id, patch).catch(() => {});
+    });
+  };
+
+  const bulkDeleteProducts = (ids: string[]) => {
+    setProducts(prev => {
+      const updated = prev.filter(p => !ids.includes(p.id));
+      localStorage.setItem('gymshark_products', JSON.stringify(updated));
+      return updated;
+    });
+    ids.forEach(id => {
+      deleteProductApi(id).catch(() => {});
+    });
   };
 
   const updateOrderStatus = (orderId: string, status: Order['fulfillmentStatus']) => {
@@ -512,6 +626,80 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const updateMenuItems = (items: MenuItem[]) => {
     setMenuItems(items);
+    localStorage.setItem('gymshark_menu_items', JSON.stringify(items));
+  };
+
+  const addCategory = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    if (categories.some(c => c.toLowerCase() === trimmed.toLowerCase())) return;
+    const updated = [...categories, trimmed];
+    setCategories(updated);
+    localStorage.setItem('gymshark_categories', JSON.stringify(updated));
+  };
+
+  const updateCategory = (oldName: string, newName: string) => {
+    const trimmed = newName.trim();
+    if (!trimmed || oldName.toLowerCase() === trimmed.toLowerCase()) return;
+    const updated = categories.map(c => c === oldName ? trimmed : c);
+    setCategories(updated);
+    localStorage.setItem('gymshark_categories', JSON.stringify(updated));
+
+    // Update all matching products in memory and localStorage
+    setProducts(prevProducts => {
+      const updatedProducts = prevProducts.map(p => {
+        if (p.category === oldName) {
+          return { ...p, category: trimmed };
+        }
+        return p;
+      });
+      localStorage.setItem('gymshark_products', JSON.stringify(updatedProducts));
+      return updatedProducts;
+    });
+
+    // Also update any matching product on backend API
+    products.filter(p => p.category === oldName).forEach(p => {
+      updateProductApi(p.id, { category: trimmed }).catch(() => {});
+    });
+  };
+
+  const deleteCategory = (categoryName: string) => {
+    const updated = categories.filter(c => c !== categoryName);
+    setCategories(updated);
+    localStorage.setItem('gymshark_categories', JSON.stringify(updated));
+
+    const fallback = updated[0] || 'Uncategorized';
+    setProducts(prevProducts => {
+      const updatedProducts = prevProducts.map(p => {
+        if (p.category === categoryName) {
+          return { ...p, category: fallback };
+        }
+        return p;
+      });
+      localStorage.setItem('gymshark_products', JSON.stringify(updatedProducts));
+      return updatedProducts;
+    });
+  };
+
+  const addMediaAsset = (asset: { filename: string; url: string; category?: MediaAsset['category']; fileSize?: string; dimensions?: string }) => {
+    const newAsset: MediaAsset = {
+      id: `media-${Date.now()}`,
+      filename: asset.filename || 'uploaded_image.png',
+      url: asset.url,
+      category: asset.category || 'banners',
+      fileSize: asset.fileSize || '320 KB',
+      dimensions: asset.dimensions || '1200x800',
+      uploadedAt: new Date().toISOString().split('T')[0]
+    };
+    const updated = [newAsset, ...mediaAssets];
+    setMediaAssets(updated);
+    localStorage.setItem('gymshark_media_assets', JSON.stringify(updated));
+  };
+
+  const deleteMediaAsset = (id: string) => {
+    const updated = mediaAssets.filter(m => m.id !== id);
+    setMediaAssets(updated);
+    localStorage.setItem('gymshark_media_assets', JSON.stringify(updated));
   };
 
   const addToCart = (product: Product, color: string, size: string, quantity: number = 1) => {
@@ -579,11 +767,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       orders,
       customers,
       coupons,
+      categories,
       mediaAssets,
       menuItems,
       seoSettings,
       themeSettings,
       adminUsers,
+      addAdminUser,
+      updateAdminUser,
+      deleteAdminUser,
       dbStatus,
       currentAdminUser,
       isAdminAuthenticated,
@@ -613,11 +805,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       addProduct,
       updateProduct,
       deleteProduct,
+      bulkUpdateProducts,
+      bulkDeleteProducts,
       updateOrderStatus,
       addCoupon,
       updateSEOSettings,
       updateThemeSettings,
       updateMenuItems,
+      addCategory,
+      updateCategory,
+      deleteCategory,
+      addMediaAsset,
+      deleteMediaAsset,
       addToCart,
       removeFromCart,
       updateCartQuantity,

@@ -33,6 +33,7 @@ import {
   ShieldCheck,
   RefreshCw
 } from 'lucide-react';
+import { NavigationTab } from './NavigationTab';
 
 export const HomepageBuilderTab: React.FC = () => {
   const { 
@@ -557,7 +558,7 @@ export const HomepageBuilderTab: React.FC = () => {
               {/* File Drag & Drop Upload Zone */}
               <div>
                 <label className="block text-xs font-extrabold text-gray-800 uppercase tracking-wider mb-2">
-                  1. Upload Logo Image File (PNG, SVG, JPG, WEBP)
+                  Upload Logo Image File (PNG, SVG, JPG, WEBP)
                 </label>
 
                 <div className="border-2 border-dashed border-gray-200 hover:border-black rounded-xl p-6 text-center bg-gray-50/50 transition-colors relative cursor-pointer group">
@@ -577,35 +578,10 @@ export const HomepageBuilderTab: React.FC = () => {
                 </div>
               </div>
 
-              {/* URL Text Input Option */}
-              <div>
-                <label className="block text-xs font-extrabold text-gray-800 uppercase tracking-wider mb-2">
-                  2. Or Paste Direct Image URL
-                </label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <LinkIcon size={16} className="absolute left-3 top-3 text-gray-400" />
-                    <input 
-                      type="text"
-                      placeholder="https://example.com/brand-logo.png"
-                      value={logoInputUrl}
-                      onChange={(e) => setLogoInputUrl(e.target.value)}
-                      className="w-full border border-gray-200 pl-9 pr-3 py-2.5 rounded-lg text-xs font-mono font-medium focus:outline-none focus:border-black"
-                    />
-                  </div>
-                  <button 
-                    onClick={() => handleApplyLogoUrl(logoInputUrl)}
-                    className="bg-black text-white text-xs font-extrabold px-4 py-2.5 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer shrink-0"
-                  >
-                    Apply URL
-                  </button>
-                </div>
-              </div>
-
               {/* Sample Preset Brand Logos */}
               <div>
                 <label className="block text-xs font-extrabold text-gray-800 uppercase tracking-wider mb-2">
-                  3. Select Sample Brand Graphic
+                  Or Select Sample Brand Graphic
                 </label>
                 <div className="grid grid-cols-3 gap-3">
                   {[
@@ -703,6 +679,11 @@ export const HomepageBuilderTab: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Dedicated Navbar Menus Manager */}
+          <div className="pt-6 border-t border-gray-100">
+            <NavigationTab />
           </div>
         </div>
       )}
@@ -859,7 +840,7 @@ export const HomepageBuilderTab: React.FC = () => {
                 {/* Banner Image Customizer */}
                 <div className="pt-2 border-t border-gray-100 space-y-3">
                   <label className="block font-extrabold text-gray-800 uppercase tracking-wide">
-                    Banner Image Upload & URL
+                    Banner Image Upload (Direct File)
                   </label>
 
                   {/* File Upload Zone */}
@@ -875,20 +856,6 @@ export const HomepageBuilderTab: React.FC = () => {
                       <p className="text-xs font-bold text-black">Upload Banner Image File</p>
                       <p className="text-[10px] text-gray-400">Click or drag banner image here (PNG, JPG, WEBP)</p>
                     </div>
-                  </div>
-
-                  {/* Direct Image URL */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">
-                      Or Image Web URL
-                    </label>
-                    <input 
-                      type="text"
-                      placeholder="https://images.unsplash.com/photo-..."
-                      value={currentBannerImg}
-                      onChange={(e) => handleUpdateActiveBannerImage(e.target.value)}
-                      className="w-full border border-gray-200 p-2 rounded-lg font-mono text-xs focus:outline-none focus:border-black"
-                    />
                   </div>
 
                   {/* Sample Presets */}
@@ -1392,20 +1359,6 @@ export const HomepageBuilderTab: React.FC = () => {
                         <p className="text-xs font-bold text-black">Upload Custom Banner Image File</p>
                         <p className="text-[10px] text-gray-400">Click or drag image file here (PNG, JPG, WEBP)</p>
                       </div>
-                    </div>
-
-                    {/* Direct Image URL Input */}
-                    <div>
-                      <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">
-                        Or Image Web URL
-                      </label>
-                      <input 
-                        type="text"
-                        placeholder="https://images.unsplash.com/photo-..."
-                        value={currentBannerImg}
-                        onChange={(e) => handleUpdateBannerImage(e.target.value)}
-                        className="w-full border border-gray-200 p-2 rounded-lg font-mono text-xs focus:outline-none focus:border-black"
-                      />
                     </div>
 
                     {/* Sample Preset Banner Images */}

@@ -6,7 +6,6 @@ import { HeroBannerSection } from './HeroBanner';
 import { ProductGridSection } from './ProductGridSection';
 import { PromoBannerSection } from './PromoBanner';
 import { CategoryGridSection } from './CategoryGrid';
-import { CategoryDirectorySection } from './CategoryDirectory';
 import { EditorialSection } from './EditorialSection';
 import { NewsletterSection } from './NewsletterSection';
 import { ProductDetailPage } from './ProductDetailPage';
@@ -31,7 +30,7 @@ export const StorefrontLayout: React.FC = () => {
         ) : (
           /* Dynamic Homepage Render */
           <div className="space-y-0">
-            {sections.filter(sec => sec.enabled && sec.id !== 'sec-editorial').map((sec) => {
+            {sections.filter(sec => sec.enabled && sec.id !== 'sec-editorial' && sec.type !== 'category_directory').map((sec) => {
               switch (sec.type) {
                 case 'hero':
                   return <HeroBannerSection key={sec.id} section={sec} />;
@@ -41,8 +40,6 @@ export const StorefrontLayout: React.FC = () => {
                   return <PromoBannerSection key={sec.id} section={sec} />;
                 case 'category_grid':
                   return <CategoryGridSection key={sec.id} section={sec} />;
-                case 'category_directory':
-                  return <CategoryDirectorySection key={sec.id} />;
                 case 'editorial':
                   return <EditorialSection key={sec.id} section={sec} />;
                 case 'newsletter':

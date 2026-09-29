@@ -29,6 +29,7 @@ import {
 export const ShopPage: React.FC = () => {
   const { 
     products, 
+    categories,
     shopFilters, 
     setShopFilters, 
     navigateToProduct, 
@@ -61,10 +62,10 @@ export const ShopPage: React.FC = () => {
 
   // Derive unique lists from product catalog for dynamic filtering
   const allCategories = useMemo(() => {
-    const set = new Set<string>();
+    const set = new Set<string>(categories || []);
     products.forEach(p => { if (p.category) set.add(p.category); });
     return Array.from(set).sort();
-  }, [products]);
+  }, [products, categories]);
 
   const allCollections = useMemo(() => {
     const set = new Set<string>();

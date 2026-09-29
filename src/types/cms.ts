@@ -244,4 +244,8 @@ export interface AdminUser {
   email: string;
   role: 'Super Admin' | 'Admin' | 'Editor' | 'Product Manager' | 'Order Manager' | 'Marketing Manager';
   avatar?: string;
+  password?: string;
+  permissions?: string[];
+  lastActive?: string;
+  status?: 'active' | 'pending' | 'disabled';
 }

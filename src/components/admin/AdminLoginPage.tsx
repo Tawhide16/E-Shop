@@ -153,7 +153,7 @@ export const AdminLoginPage: React.FC = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@eshop.com"
+                placeholder="lox.bd0.1@gmail.com"
                 className="w-full bg-neutral-950 border border-neutral-800 focus:border-white focus:outline-none text-white text-sm rounded-xl pl-10 pr-4 py-3 placeholder:text-gray-600 transition-colors"
               />
             </div>
@@ -208,21 +208,21 @@ export const AdminLoginPage: React.FC = () => {
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
-              onClick={() => handleQuickFill('admin@eshop.com', 'admin123')}
+              onClick={() => handleQuickFill('lox.bd0.1@gmail.com', 'admin123')}
               className="bg-neutral-800/80 hover:bg-neutral-700/80 text-left p-2.5 rounded-lg border border-neutral-700/50 cursor-pointer transition-all active:scale-95"
             >
               <div className="text-xs font-bold text-white leading-none">Super Admin</div>
-              <div className="text-[10px] text-gray-400 mt-1 font-mono">admin@eshop.com</div>
+              <div className="text-[10px] text-gray-400 mt-1 font-mono truncate">lox.bd0.1@gmail.com</div>
               <div className="text-[9px] text-emerald-400 font-mono mt-0.5">pass: admin123</div>
             </button>
 
             <button
               type="button"
-              onClick={() => handleQuickFill('tawhideh.b10@gmail.com', 'admin123')}
+              onClick={() => handleQuickFill('admin@eshop.com', 'admin123')}
               className="bg-neutral-800/80 hover:bg-neutral-700/80 text-left p-2.5 rounded-lg border border-neutral-700/50 cursor-pointer transition-all active:scale-95"
             >
-              <div className="text-xs font-bold text-white leading-none">Tawhid Ehsan</div>
-              <div className="text-[10px] text-gray-400 mt-1 font-mono truncate">tawhideh...</div>
+              <div className="text-xs font-bold text-white leading-none">Admin Backup</div>
+              <div className="text-[10px] text-gray-400 mt-1 font-mono truncate">admin@eshop.com</div>
               <div className="text-[9px] text-emerald-400 font-mono mt-0.5">pass: admin123</div>
             </button>
           </div>
