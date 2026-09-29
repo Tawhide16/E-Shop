@@ -1,4 +1,4 @@
-import { app, ensureDatabaseConnected } from '../server/app';
+import { app, ensureDatabaseConnected } from './app';
 
 export default async function handler(req: any, res: any) {
   try {
