@@ -34,6 +34,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { NavigationTab } from './NavigationTab';
+import { fileToOptimizedDataUrl } from '../../utils/imageUpload';
 
 export const HomepageBuilderTab: React.FC = () => {
   const { 
@@ -73,6 +74,7 @@ export const HomepageBuilderTab: React.FC = () => {
   const [logoInputUrl, setLogoInputUrl] = useState(themeSettings.logoUrl || '');
   const [logoHeight, setLogoHeight] = useState(themeSettings.logoHeight || 32);
   const [logoSavedNotice, setLogoSavedNotice] = useState(false);
+  const [bannerSavedNotice, setBannerSavedNotice] = useState(false);
 
   // Navigation Menu state
   const [draggedMenuIndex, setDraggedMenuIndex] = useState<number | null>(null);
@@ -105,23 +107,18 @@ export const HomepageBuilderTab: React.FC = () => {
   };
 
   // --- LOGO UPLOAD HANDLERS ---
-  const handleLogoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Logo image should be smaller than 5MB.');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
+    try {
+      const result = await fileToOptimizedDataUrl(file, 400, 200, 0.85);
       setLogoInputUrl(result);
       updateThemeSettings({ logoUrl: result, logoHeight });
       triggerLogoSaveNotice();
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Logo upload error:', err);
+    }
   };
 
   const handleApplyLogoUrl = (url: string) => {
@@ -705,19 +702,15 @@ export const HomepageBuilderTab: React.FC = () => {
         const currentSecondaryBtnUrl = activeBanner.settings.secondaryBtnUrl || activeBanner.settings.heroSlides?.[0]?.button2Url || '/collections/all';
         const currentOverlayDarkness = activeBanner.styles?.overlayDarkness ?? 35;
 
-        const handleBannerFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const handleBannerFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
           const file = e.target.files?.[0];
           if (!file) return;
-          if (file.size > 8 * 1024 * 1024) {
-            alert('Banner image file must be smaller than 8MB');
-            return;
-          }
-          const reader = new FileReader();
-          reader.onload = () => {
-            const result = reader.result as string;
+          try {
+            const result = await fileToOptimizedDataUrl(file, 1400, 900, 0.75);
             handleUpdateActiveBannerImage(result);
-          };
-          reader.readAsDataURL(file);
+          } catch (err) {
+            console.error('Banner upload error:', err);
+          }
         };
 
         const handleUpdateActiveBannerImage = (imgUrl: string) => {
@@ -725,15 +718,28 @@ export const HomepageBuilderTab: React.FC = () => {
           const updatedHeroSlides = heroSlides ? [
             { ...heroSlides[0], desktopImage: imgUrl },
             ...heroSlides.slice(1)
-          ] : undefined;
+          ] : [{
+            title: activeBanner.title,
+            subtitle: activeBanner.subtitle || '',
+            desktopImage: imgUrl,
+            button1Text: currentPrimaryBtnText,
+            button1Url: currentPrimaryBtnUrl,
+            button2Text: currentSecondaryBtnText,
+            button2Url: currentSecondaryBtnUrl
+          }];
 
           updateSection(activeBanner.id, {
             settings: {
               ...activeBanner.settings,
               bannerImage: imgUrl,
-              ...(updatedHeroSlides ? { heroSlides: updatedHeroSlides } : {})
+              heroSlides: updatedHeroSlides
             }
           });
+
+          // Auto-save and publish immediately so image is saved to MongoDB and storefront
+          publishHomepage(`Updated Banner (${activeBanner.title || activeBanner.id})`);
+          setBannerSavedNotice(true);
+          setTimeout(() => setBannerSavedNotice(false), 3500);
         };
 
         return (
@@ -748,25 +754,46 @@ export const HomepageBuilderTab: React.FC = () => {
                 </p>
               </div>
 
-              {/* Banner Selector Pills */}
+              {/* Banner Action & Notification */}
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[11px] font-extrabold text-gray-500 uppercase tracking-wider">Select Banner:</span>
-                {allBanners.map(b => (
-                  <button
-                    key={b.id}
-                    type="button"
-                    onClick={() => setSelectedBannerId(b.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ${
-                      activeBanner.id === b.id
-                        ? 'bg-black text-white shadow-sm ring-2 ring-black/10'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    <ImageIcon size={13} />
-                    {b.type === 'hero' ? 'Hero Banner' : b.title || b.id}
-                  </button>
-                ))}
+                {bannerSavedNotice && (
+                  <span className="bg-emerald-100 text-emerald-800 text-xs font-black px-3 py-1.5 rounded-lg flex items-center gap-1.5 animate-in fade-in">
+                    <Check size={14} /> Saved Live to Store & DB!
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    publishHomepage(`Updated Banner (${activeBanner.title || activeBanner.id})`);
+                    setBannerSavedNotice(true);
+                    setTimeout(() => setBannerSavedNotice(false), 3500);
+                  }}
+                  className="bg-black hover:bg-neutral-800 text-white text-xs font-black px-4 py-2 rounded-lg flex items-center gap-2 cursor-pointer shadow-sm active:scale-98 transition-all"
+                >
+                  <Save size={14} />
+                  <span>Save & Publish Live</span>
+                </button>
               </div>
+            </div>
+
+            {/* Banner Selector Pills */}
+            <div className="flex items-center gap-2 pb-2 overflow-x-auto">
+              <span className="text-[11px] font-extrabold text-gray-500 uppercase tracking-wider shrink-0">Select Banner:</span>
+              {allBanners.map(b => (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => setSelectedBannerId(b.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                    activeBanner.id === b.id
+                      ? 'bg-black text-white shadow-sm ring-2 ring-black/10'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  <ImageIcon size={13} />
+                  {b.type === 'hero' ? 'Hero Banner' : b.title || b.id}
+                </button>
+              ))}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -1051,6 +1078,19 @@ export const HomepageBuilderTab: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    publishHomepage(`Updated Banner (${activeBanner.title || activeBanner.id})`);
+                    setBannerSavedNotice(true);
+                    setTimeout(() => setBannerSavedNotice(false), 3500);
+                  }}
+                  className="w-full bg-black hover:bg-neutral-800 text-white text-xs font-black py-3 px-4 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all active:scale-98"
+                >
+                  <Save size={15} />
+                  <span>Save & Publish Banner Live to Storefront</span>
+                </button>
               </div>
             </div>
           </div>
@@ -1142,19 +1182,15 @@ export const HomepageBuilderTab: React.FC = () => {
         const currentSecondaryBtnUrl = editingSection.settings.secondaryBtnUrl || editingSection.settings.heroSlides?.[0]?.button2Url || '/pink';
         const currentOverlayDarkness = editingSection.styles.overlayDarkness ?? 30;
 
-        const handleBannerFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const handleBannerFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
           const file = e.target.files?.[0];
           if (!file) return;
-          if (file.size > 8 * 1024 * 1024) {
-            alert('Banner image file must be smaller than 8MB');
-            return;
-          }
-          const reader = new FileReader();
-          reader.onload = () => {
-            const result = reader.result as string;
+          try {
+            const result = await fileToOptimizedDataUrl(file, 1400, 900, 0.75);
             handleUpdateBannerImage(result);
-          };
-          reader.readAsDataURL(file);
+          } catch (err) {
+            console.error('Section banner upload error:', err);
+          }
         };
 
         const handleUpdateBannerImage = (imgUrl: string) => {

@@ -206,30 +206,16 @@ export function safeSetItem(key: string, value: string): void {
   }
 }
 
-// Auto-clean any corrupt or oversized items (> 400KB) left over from prior uncompressed uploads
-try {
-  ['gymshark_cms_draft_sections', 'gymshark_cms_sections', 'gymshark_media_assets', 'gymshark_cms_versions'].forEach(k => {
-    const val = localStorage.getItem(k);
-    if (val && val.length > 400000) {
-      localStorage.removeItem(k);
-    }
-  });
-} catch {}
-
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Load initial state with localStorage fallbacks
   const [sections, setSections] = useState<SectionConfig[]>(() => {
     try {
       const saved = localStorage.getItem('gymshark_cms_sections');
       if (saved) {
-        if (saved.length > 400000) {
-          localStorage.removeItem('gymshark_cms_sections');
-          return ensureFavoritesBanner(INITIAL_SECTIONS);
-        }
         return ensureFavoritesBanner(JSON.parse(saved));
       }
     } catch (e) {
-      console.error(e);
+      console.error('Error parsing saved sections:', e);
     }
     return ensureFavoritesBanner(INITIAL_SECTIONS);
   });
@@ -238,14 +224,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const saved = localStorage.getItem('gymshark_cms_draft_sections');
       if (saved) {
-        if (saved.length > 400000) {
-          localStorage.removeItem('gymshark_cms_draft_sections');
-          return ensureFavoritesBanner(INITIAL_SECTIONS);
-        }
         return ensureFavoritesBanner(JSON.parse(saved));
       }
     } catch (e) {
-      console.error(e);
+      console.error('Error parsing saved draft sections:', e);
     }
     return ensureFavoritesBanner(INITIAL_SECTIONS);
   });
@@ -436,18 +418,73 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         const remoteProducts = await fetchProducts().catch(() => null);
         if (isMounted && remoteProducts && remoteProducts.length > 0) {
-          setProducts(remoteProducts);
+          const savedLocal = localStorage.getItem('gymshark_products');
+          if (savedLocal) {
+            try {
+              const localList: Product[] = JSON.parse(savedLocal);
+              const remoteIds = new Set(remoteProducts.map(p => p.id));
+              const missingLocals = localList.filter(p => !remoteIds.has(p.id));
+              if (missingLocals.length > 0) {
+                missingLocals.forEach(p => createProductApi(p).catch(() => {}));
+                setProducts([...remoteProducts, ...missingLocals]);
+              } else {
+                setProducts(remoteProducts);
+              }
+            } catch {
+              setProducts(remoteProducts);
+            }
+          } else {
+            setProducts(remoteProducts);
+          }
         }
 
         const remoteSections = await fetchSections().catch(() => null);
         if (isMounted && remoteSections && remoteSections.length > 0) {
-          setSections(ensureFavoritesBanner(remoteSections));
-          setDraftSections(ensureFavoritesBanner(remoteSections));
+          const localSaved = localStorage.getItem('gymshark_cms_sections');
+          let resolvedSections = remoteSections;
+          if (localSaved) {
+            try {
+              const localSections: SectionConfig[] = JSON.parse(localSaved);
+              const localHasCustomBanner = localSections.some(s => 
+                (s.settings?.bannerImage && !s.settings.bannerImage.includes('unsplash.com')) ||
+                (s.settings?.heroSlides?.[0]?.desktopImage && !s.settings.heroSlides[0].desktopImage.includes('unsplash.com'))
+              );
+              const remoteHasCustomBanner = remoteSections.some(s => 
+                (s.settings?.bannerImage && !s.settings.bannerImage.includes('unsplash.com')) ||
+                (s.settings?.heroSlides?.[0]?.desktopImage && !s.settings.heroSlides[0].desktopImage.includes('unsplash.com'))
+              );
+
+              if (localHasCustomBanner && !remoteHasCustomBanner) {
+                resolvedSections = localSections;
+                saveSectionsApi(localSections).catch(() => {});
+              }
+            } catch {}
+          }
+
+          setSections(ensureFavoritesBanner(resolvedSections));
+          setDraftSections(ensureFavoritesBanner(resolvedSections));
         }
 
         const remoteOrders = await fetchOrders().catch(() => null);
-        if (isMounted && remoteOrders && remoteOrders.length > 0) {
-          setOrders(remoteOrders);
+        if (isMounted && remoteOrders) {
+          const savedLocal = localStorage.getItem('gymshark_orders');
+          if (savedLocal) {
+            try {
+              const localList: Order[] = JSON.parse(savedLocal);
+              const remoteIds = new Set(remoteOrders.map(o => o.id));
+              const missingLocals = localList.filter(o => !remoteIds.has(o.id));
+              if (missingLocals.length > 0) {
+                missingLocals.forEach(o => createOrderApi(o).catch(() => {}));
+                setOrders([...remoteOrders, ...missingLocals]);
+              } else if (remoteOrders.length > 0) {
+                setOrders(remoteOrders);
+              }
+            } catch {
+              if (remoteOrders.length > 0) setOrders(remoteOrders);
+            }
+          } else if (remoteOrders.length > 0) {
+            setOrders(remoteOrders);
+          }
         }
 
         const remoteCustomers = await fetchCustomers().catch(() => null);
