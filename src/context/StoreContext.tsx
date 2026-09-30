@@ -215,10 +215,40 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [orders, setOrders] = useState<Order[]>(() => {
     const saved = localStorage.getItem('gymshark_orders');
-    return saved ? JSON.parse(saved) : INITIAL_ORDERS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          // Exclude any template dummy orders
+          return parsed.filter((o: any) => 
+            !['ORD-10284', 'ORD-10283', 'ORD-10282'].includes(o.id) &&
+            !['sarah.j@example.com', 'marcus.v@example.com', 'elena.r@example.com'].includes(o.customerEmail)
+          );
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return [];
   });
 
-  const [customers, setCustomers] = useState<Customer[]>(INITIAL_CUSTOMERS);
+  const [customers, setCustomers] = useState<Customer[]>(() => {
+    const saved = localStorage.getItem('gymshark_customers');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((c: any) => 
+            !['cust-1', 'cust-2', 'cust-3'].includes(c.id) &&
+            !['sarah.j@example.com', 'marcus.v@example.com', 'elena.r@example.com'].includes(c.email)
+          );
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return [];
+  });
   const [coupons, setCoupons] = useState<Coupon[]>(INITIAL_COUPONS);
   const [categories, setCategories] = useState<string[]>(() => {
     const saved = localStorage.getItem('gymshark_categories');
@@ -594,7 +624,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateOrderStatus = (orderId: string, status: Order['fulfillmentStatus']) => {
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, fulfillmentStatus: status } : o));
+    setOrders(prev => {
+      const updated = prev.map(o => o.id === orderId ? { ...o, fulfillmentStatus: status } : o);
+      localStorage.setItem('gymshark_orders', JSON.stringify(updated));
+      return updated;
+    });
     updateOrderStatusApi(orderId, status).catch(console.error);
   };
 
@@ -733,14 +767,49 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const placeOrder = (orderData: Omit<Order, 'id' | 'orderNumber' | 'date'>) => {
-    const newOrderNumber = `GS-${Math.floor(100000 + Math.random() * 900000)}`;
+    const newOrderNumber = `LOX-${Math.floor(100000 + Math.random() * 900000)}`;
     const newOrder: Order = {
       ...orderData,
       id: `ord-${Date.now()}`,
       orderNumber: newOrderNumber,
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     };
-    setOrders(prev => [newOrder, ...prev]);
+    
+    // Save order in state and localStorage
+    setOrders(prev => {
+      const updated = [newOrder, ...prev];
+      localStorage.setItem('gymshark_orders', JSON.stringify(updated));
+      return updated;
+    });
+
+    // Update real-time customer analytics
+    setCustomers(prev => {
+      const cleanEmail = (newOrder.customerEmail || '').toLowerCase().trim();
+      const existing = prev.find(c => c.email.toLowerCase().trim() === cleanEmail);
+      let updatedCust: Customer[];
+      if (existing) {
+        updatedCust = prev.map(c => c.id === existing.id ? {
+          ...c,
+          totalOrders: (c.totalOrders || 0) + 1,
+          totalSpent: (c.totalSpent || 0) + newOrder.totalAmount,
+          lastOrderDate: new Date().toISOString().split('T')[0]
+        } : c);
+      } else {
+        const newCust: Customer = {
+          id: `cust-${Date.now()}`,
+          name: newOrder.customerName || 'Customer',
+          email: newOrder.customerEmail || 'guest@eshop.com',
+          totalOrders: 1,
+          totalSpent: newOrder.totalAmount,
+          lastOrderDate: new Date().toISOString().split('T')[0],
+          status: 'active'
+        };
+        updatedCust = [newCust, ...prev];
+      }
+      localStorage.setItem('gymshark_customers', JSON.stringify(updatedCust));
+      return updatedCust;
+    });
+
     clearCart();
     createOrderApi(newOrder).catch(console.error);
     return newOrder;
