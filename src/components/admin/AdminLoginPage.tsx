@@ -64,11 +64,6 @@ export const AdminLoginPage: React.FC = () => {
     }
   };
 
-  const handleQuickFill = (fillEmail: string, fillPass: string) => {
-    setEmail(fillEmail);
-    setPassword(fillPass);
-    setError(null);
-  };
 
   const handleBackToShop = () => {
     setActiveView('storefront');
@@ -153,7 +148,7 @@ export const AdminLoginPage: React.FC = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="lox.bd0.1@gmail.com"
+                placeholder="admin@example.com"
                 className="w-full bg-neutral-950 border border-neutral-800 focus:border-white focus:outline-none text-white text-sm rounded-xl pl-10 pr-4 py-3 placeholder:text-gray-600 transition-colors"
               />
             </div>
@@ -200,33 +195,7 @@ export const AdminLoginPage: React.FC = () => {
           </button>
         </form>
 
-        {/* Quick Demo Credentials Box */}
-        <div className="mt-8 pt-6 border-t border-neutral-800">
-          <p className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400 mb-2.5 flex items-center gap-1.5">
-            <CheckCircle2 size={13} className="text-emerald-400" /> Quick Demo Fill:
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => handleQuickFill('lox.bd0.1@gmail.com', 'admin123')}
-              className="bg-neutral-800/80 hover:bg-neutral-700/80 text-left p-2.5 rounded-lg border border-neutral-700/50 cursor-pointer transition-all active:scale-95"
-            >
-              <div className="text-xs font-bold text-white leading-none">Super Admin</div>
-              <div className="text-[10px] text-gray-400 mt-1 font-mono truncate">lox.bd0.1@gmail.com</div>
-              <div className="text-[9px] text-emerald-400 font-mono mt-0.5">pass: admin123</div>
-            </button>
 
-            <button
-              type="button"
-              onClick={() => handleQuickFill('admin@eshop.com', 'admin123')}
-              className="bg-neutral-800/80 hover:bg-neutral-700/80 text-left p-2.5 rounded-lg border border-neutral-700/50 cursor-pointer transition-all active:scale-95"
-            >
-              <div className="text-xs font-bold text-white leading-none">Admin Backup</div>
-              <div className="text-[10px] text-gray-400 mt-1 font-mono truncate">admin@eshop.com</div>
-              <div className="text-[9px] text-emerald-400 font-mono mt-0.5">pass: admin123</div>
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );
