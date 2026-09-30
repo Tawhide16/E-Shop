@@ -13,14 +13,11 @@ if (!process.env.VERCEL) {
   }
 }
 
-export const DEFAULT_MONGODB_URI = 'mongodb+srv://loxbd01_db_user:oBXdwapwN4xNtqtX@cluster0.iv15qaw.mongodb.net/eshop?retryWrites=true&w=majority&appName=Cluster0';
-
 let isConnected = false;
 let lastDbError: string | null = null;
 
 export function getMongoUri(): string {
-  const uri = process.env.MONGODB_URI?.trim();
-  return uri || DEFAULT_MONGODB_URI;
+  return process.env.MONGODB_URI?.trim() || '';
 }
 
 export async function connectToDatabase(): Promise<boolean> {
@@ -29,6 +26,13 @@ export async function connectToDatabase(): Promise<boolean> {
   }
 
   const uri = getMongoUri();
+
+  if (!uri) {
+    lastDbError = 'MONGODB_URI environment variable is not defined.';
+    console.warn('⚠️ MONGODB_URI environment variable is not defined.');
+    isConnected = false;
+    return false;
+  }
 
   try {
     const masked = uri.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@');

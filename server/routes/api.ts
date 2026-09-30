@@ -1,3 +1,4 @@
+import { Router, Request, Response } from 'express';
 import { isDbConnected, connectToDatabase, getLastError } from '../db';
 import { ProductModel } from '../models/Product';
 import { OrderModel } from '../models/Order';

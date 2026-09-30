@@ -14,18 +14,22 @@ if (!process.env.VERCEL) {
   } catch {
   }
 }
-var DEFAULT_MONGODB_URI = "mongodb+srv://loxbd01_db_user:oBXdwapwN4xNtqtX@cluster0.iv15qaw.mongodb.net/eshop?retryWrites=true&w=majority&appName=Cluster0";
 var isConnected = false;
 var lastDbError = null;
 function getMongoUri() {
-  const uri = process.env.MONGODB_URI?.trim();
-  return uri || DEFAULT_MONGODB_URI;
+  return process.env.MONGODB_URI?.trim() || "";
 }
 async function connectToDatabase() {
   if (isConnected && mongoose.connection.readyState === 1) {
     return true;
   }
   const uri = getMongoUri();
+  if (!uri) {
+    lastDbError = "MONGODB_URI environment variable is not defined.";
+    console.warn("\u26A0\uFE0F MONGODB_URI environment variable is not defined.");
+    isConnected = false;
+    return false;
+  }
   try {
     const masked = uri.replace(/\/\/([^:]+):([^@]+)@/, "//$1:****@");
     console.log(`\u{1F50C} Attempting to connect to MongoDB at: ${masked}`);
@@ -51,6 +55,9 @@ function isDbConnected() {
 function getLastError() {
   return lastDbError;
 }
+
+// server/routes/api.ts
+import { Router } from "express";
 
 // server/models/Product.ts
 import mongoose2, { Schema } from "mongoose";
