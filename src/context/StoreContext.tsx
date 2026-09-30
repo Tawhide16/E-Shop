@@ -181,18 +181,73 @@ const ensureFavoritesBanner = (secList: SectionConfig[]): SectionConfig[] => {
   return updated.map((s, idx) => ({ ...s, order: idx + 1 }));
 };
 
+export function safeSetItem(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch (err: any) {
+    console.warn(`[Storage Warning] Storage limit reached for ${key}:`, err?.name || err);
+    try {
+      localStorage.removeItem('gymshark_cms_versions');
+      localStorage.removeItem('gymshark_media_assets');
+      if (key !== 'gymshark_cms_draft_sections') {
+        localStorage.removeItem('gymshark_cms_draft_sections');
+      }
+      localStorage.setItem(key, value);
+    } catch {
+      try {
+        if (key !== 'gymshark_cms_sections') {
+          localStorage.removeItem('gymshark_cms_sections');
+        }
+        localStorage.setItem(key, value);
+      } catch {
+        // Fallback to memory state; NEVER crash React!
+      }
+    }
+  }
+}
+
+// Auto-clean any corrupt or oversized items (> 400KB) left over from prior uncompressed uploads
+try {
+  ['gymshark_cms_draft_sections', 'gymshark_cms_sections', 'gymshark_media_assets', 'gymshark_cms_versions'].forEach(k => {
+    const val = localStorage.getItem(k);
+    if (val && val.length > 400000) {
+      localStorage.removeItem(k);
+    }
+  });
+} catch {}
+
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Load initial state with localStorage fallbacks
   const [sections, setSections] = useState<SectionConfig[]>(() => {
-    const saved = localStorage.getItem('gymshark_cms_sections');
-    const parsed = saved ? JSON.parse(saved) : INITIAL_SECTIONS;
-    return ensureFavoritesBanner(parsed);
+    try {
+      const saved = localStorage.getItem('gymshark_cms_sections');
+      if (saved) {
+        if (saved.length > 400000) {
+          localStorage.removeItem('gymshark_cms_sections');
+          return ensureFavoritesBanner(INITIAL_SECTIONS);
+        }
+        return ensureFavoritesBanner(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return ensureFavoritesBanner(INITIAL_SECTIONS);
   });
 
   const [draftSections, setDraftSections] = useState<SectionConfig[]>(() => {
-    const saved = localStorage.getItem('gymshark_cms_draft_sections');
-    const parsed = saved ? JSON.parse(saved) : sections;
-    return ensureFavoritesBanner(parsed);
+    try {
+      const saved = localStorage.getItem('gymshark_cms_draft_sections');
+      if (saved) {
+        if (saved.length > 400000) {
+          localStorage.removeItem('gymshark_cms_draft_sections');
+          return ensureFavoritesBanner(INITIAL_SECTIONS);
+        }
+        return ensureFavoritesBanner(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return ensureFavoritesBanner(INITIAL_SECTIONS);
   });
 
   const [versionHistory, setVersionHistory] = useState<VersionSnapshot[]>(() => {
@@ -319,7 +374,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       };
 
       setCurrentAdminUser(userToLogin);
-      localStorage.setItem('gymshark_admin_session', JSON.stringify(userToLogin));
+      safeSetItem('gymshark_admin_session', JSON.stringify(userToLogin));
       return { success: true };
     }
 
@@ -328,7 +383,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const logoutAdmin = () => {
     setCurrentAdminUser(null);
-    localStorage.removeItem('gymshark_admin_session');
+    try {
+      localStorage.removeItem('gymshark_admin_session');
+    } catch {}
   };
 
   const addAdminUser = (userData: Omit<AdminUser, 'id'>) => {
@@ -341,7 +398,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     setAdminUsers(prev => {
       const updated = [...prev, newUser];
-      localStorage.setItem('gymshark_admin_users', JSON.stringify(updated));
+      safeSetItem('gymshark_admin_users', JSON.stringify(updated));
       return updated;
     });
   };
@@ -349,7 +406,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateAdminUser = (id: string, updates: Partial<AdminUser>) => {
     setAdminUsers(prev => {
       const updated = prev.map(u => u.id === id ? { ...u, ...updates } : u);
-      localStorage.setItem('gymshark_admin_users', JSON.stringify(updated));
+      safeSetItem('gymshark_admin_users', JSON.stringify(updated));
       return updated;
     });
   };
@@ -362,7 +419,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return prev;
       }
       const updated = prev.filter(u => u.id !== id);
-      localStorage.setItem('gymshark_admin_users', JSON.stringify(updated));
+      safeSetItem('gymshark_admin_users', JSON.stringify(updated));
       return updated;
     });
   };
@@ -437,33 +494,33 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Check if draft has uncommitted changes
   const isDraftModified = JSON.stringify(sections) !== JSON.stringify(draftSections);
 
-  // Sync to localStorage
+  // Sync to localStorage safely
   useEffect(() => {
-    localStorage.setItem('gymshark_cms_sections', JSON.stringify(sections));
+    safeSetItem('gymshark_cms_sections', JSON.stringify(sections));
   }, [sections]);
 
   useEffect(() => {
-    localStorage.setItem('gymshark_cms_draft_sections', JSON.stringify(draftSections));
+    safeSetItem('gymshark_cms_draft_sections', JSON.stringify(draftSections));
   }, [draftSections]);
 
   useEffect(() => {
-    localStorage.setItem('gymshark_cms_versions', JSON.stringify(versionHistory));
+    safeSetItem('gymshark_cms_versions', JSON.stringify(versionHistory));
   }, [versionHistory]);
 
   useEffect(() => {
-    localStorage.setItem('gymshark_products', JSON.stringify(products));
+    safeSetItem('gymshark_products', JSON.stringify(products));
   }, [products]);
 
   useEffect(() => {
-    localStorage.setItem('gymshark_orders', JSON.stringify(orders));
+    safeSetItem('gymshark_orders', JSON.stringify(orders));
   }, [orders]);
 
   useEffect(() => {
-    localStorage.setItem('gymshark_menu_items', JSON.stringify(menuItems));
+    safeSetItem('gymshark_menu_items', JSON.stringify(menuItems));
   }, [menuItems]);
 
   useEffect(() => {
-    localStorage.setItem('gymshark_theme_settings', JSON.stringify(themeSettings));
+    safeSetItem('gymshark_theme_settings', JSON.stringify(themeSettings));
   }, [themeSettings]);
 
   // Actions
@@ -586,7 +643,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deleteProduct = (id: string) => {
     setProducts(prev => {
       const updated = prev.filter(p => p.id !== id);
-      localStorage.setItem('gymshark_products', JSON.stringify(updated));
+      safeSetItem('gymshark_products', JSON.stringify(updated));
       return updated;
     });
     deleteProductApi(id).catch(console.error);
@@ -601,7 +658,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
         return p;
       });
-      localStorage.setItem('gymshark_products', JSON.stringify(updated));
+      safeSetItem('gymshark_products', JSON.stringify(updated));
       return updated;
     });
 
@@ -615,7 +672,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const bulkDeleteProducts = (ids: string[]) => {
     setProducts(prev => {
       const updated = prev.filter(p => !ids.includes(p.id));
-      localStorage.setItem('gymshark_products', JSON.stringify(updated));
+      safeSetItem('gymshark_products', JSON.stringify(updated));
       return updated;
     });
     ids.forEach(id => {
@@ -626,7 +683,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateOrderStatus = (orderId: string, status: Order['fulfillmentStatus']) => {
     setOrders(prev => {
       const updated = prev.map(o => o.id === orderId ? { ...o, fulfillmentStatus: status } : o);
-      localStorage.setItem('gymshark_orders', JSON.stringify(updated));
+      safeSetItem('gymshark_orders', JSON.stringify(updated));
       return updated;
     });
     updateOrderStatusApi(orderId, status).catch(console.error);
@@ -660,7 +717,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const updateMenuItems = (items: MenuItem[]) => {
     setMenuItems(items);
-    localStorage.setItem('gymshark_menu_items', JSON.stringify(items));
+    safeSetItem('gymshark_menu_items', JSON.stringify(items));
   };
 
   const addCategory = (name: string) => {
@@ -669,7 +726,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (categories.some(c => c.toLowerCase() === trimmed.toLowerCase())) return;
     const updated = [...categories, trimmed];
     setCategories(updated);
-    localStorage.setItem('gymshark_categories', JSON.stringify(updated));
+    safeSetItem('gymshark_categories', JSON.stringify(updated));
   };
 
   const updateCategory = (oldName: string, newName: string) => {
@@ -677,7 +734,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!trimmed || oldName.toLowerCase() === trimmed.toLowerCase()) return;
     const updated = categories.map(c => c === oldName ? trimmed : c);
     setCategories(updated);
-    localStorage.setItem('gymshark_categories', JSON.stringify(updated));
+    safeSetItem('gymshark_categories', JSON.stringify(updated));
 
     // Update all matching products in memory and localStorage
     setProducts(prevProducts => {
@@ -687,7 +744,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
         return p;
       });
-      localStorage.setItem('gymshark_products', JSON.stringify(updatedProducts));
+      safeSetItem('gymshark_products', JSON.stringify(updatedProducts));
       return updatedProducts;
     });
 
@@ -700,7 +757,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deleteCategory = (categoryName: string) => {
     const updated = categories.filter(c => c !== categoryName);
     setCategories(updated);
-    localStorage.setItem('gymshark_categories', JSON.stringify(updated));
+    safeSetItem('gymshark_categories', JSON.stringify(updated));
 
     const fallback = updated[0] || 'Uncategorized';
     setProducts(prevProducts => {
@@ -710,7 +767,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
         return p;
       });
-      localStorage.setItem('gymshark_products', JSON.stringify(updatedProducts));
+      safeSetItem('gymshark_products', JSON.stringify(updatedProducts));
       return updatedProducts;
     });
   };
@@ -727,13 +784,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     const updated = [newAsset, ...mediaAssets];
     setMediaAssets(updated);
-    localStorage.setItem('gymshark_media_assets', JSON.stringify(updated));
+    safeSetItem('gymshark_media_assets', JSON.stringify(updated));
   };
 
   const deleteMediaAsset = (id: string) => {
     const updated = mediaAssets.filter(m => m.id !== id);
     setMediaAssets(updated);
-    localStorage.setItem('gymshark_media_assets', JSON.stringify(updated));
+    safeSetItem('gymshark_media_assets', JSON.stringify(updated));
   };
 
   const addToCart = (product: Product, color: string, size: string, quantity: number = 1) => {
@@ -778,7 +835,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Save order in state and localStorage
     setOrders(prev => {
       const updated = [newOrder, ...prev];
-      localStorage.setItem('gymshark_orders', JSON.stringify(updated));
+      safeSetItem('gymshark_orders', JSON.stringify(updated));
       return updated;
     });
 
@@ -806,7 +863,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         };
         updatedCust = [newCust, ...prev];
       }
-      localStorage.setItem('gymshark_customers', JSON.stringify(updatedCust));
+      safeSetItem('gymshark_customers', JSON.stringify(updatedCust));
       return updatedCust;
     });
 

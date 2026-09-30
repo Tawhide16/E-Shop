@@ -5,6 +5,8 @@ import { AdminLayout } from './components/admin/AdminLayout';
 import { AdminLoginPage } from './components/admin/AdminLoginPage';
 import { SEOMeta } from './components/common/SEOMeta';
 
+import { ErrorBoundary } from './components/common/ErrorBoundary';
+
 const MainAppContent: React.FC = () => {
   const { activeView, isAdminAuthenticated } = useStore();
 
@@ -22,9 +24,11 @@ const MainAppContent: React.FC = () => {
 
 export function App() {
   return (
-    <StoreProvider>
-      <MainAppContent />
-    </StoreProvider>
+    <ErrorBoundary>
+      <StoreProvider>
+        <MainAppContent />
+      </StoreProvider>
+    </ErrorBoundary>
   );
 }
 
