@@ -1,5 +1,4 @@
-import { Router, Request, Response } from 'express';
-import { isDbConnected } from '../db';
+import { isDbConnected, connectToDatabase, getLastError } from '../db';
 import { ProductModel } from '../models/Product';
 import { OrderModel } from '../models/Order';
 import { CustomerModel } from '../models/Customer';
@@ -20,10 +19,14 @@ const router = Router();
 
 // Health & Status Check
 router.get('/health', async (_req: Request, res: Response) => {
+  if (!isDbConnected()) {
+    await connectToDatabase().catch(() => false);
+  }
   const connected = isDbConnected();
   res.json({
     status: 'ok',
     database: connected ? 'connected' : 'disconnected',
+    error: getLastError(),
     message: connected 
       ? 'MongoDB is connected and operational.' 
       : 'Running in offline/fallback mode. MongoDB connection not established.',

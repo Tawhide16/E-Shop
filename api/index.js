@@ -8,44 +8,49 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import dns from "dns";
 dotenv.config();
-try {
-  dns.setServers(["8.8.8.8", "1.1.1.1"]);
-} catch {
+if (!process.env.VERCEL) {
+  try {
+    dns.setServers(["8.8.8.8", "1.1.1.1"]);
+  } catch {
+  }
 }
-var MONGODB_URI = process.env.MONGODB_URI || (process.env.VERCEL ? "" : "mongodb://127.0.0.1:27017/eshop");
+var DEFAULT_MONGODB_URI = "mongodb+srv://loxbd01_db_user:oBXdwapwN4xNtqtX@cluster0.iv15qaw.mongodb.net/eshop?retryWrites=true&w=majority&appName=Cluster0";
 var isConnected = false;
+var lastDbError = null;
+function getMongoUri() {
+  const uri = process.env.MONGODB_URI?.trim();
+  return uri || DEFAULT_MONGODB_URI;
+}
 async function connectToDatabase() {
   if (isConnected && mongoose.connection.readyState === 1) {
     return true;
   }
-  if (!MONGODB_URI) {
-    console.warn("\u26A0\uFE0F MONGODB_URI environment variable is not defined on Vercel. Running in fallback mode.");
-    isConnected = false;
-    return false;
-  }
+  const uri = getMongoUri();
   try {
-    console.log(`\u{1F50C} Attempting to connect to MongoDB at: ${MONGODB_URI.replace(/\/\/([^:]+):([^@]+)@/, "//$1:****@")}`);
-    await mongoose.connect(MONGODB_URI, {
-      serverSelectionTimeoutMS: 4e3,
-      connectTimeoutMS: 4e3
+    const masked = uri.replace(/\/\/([^:]+):([^@]+)@/, "//$1:****@");
+    console.log(`\u{1F50C} Attempting to connect to MongoDB at: ${masked}`);
+    await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 1e4,
+      connectTimeoutMS: 1e4,
+      bufferCommands: false
     });
     isConnected = true;
+    lastDbError = null;
     console.log("\u2705 Connected successfully to MongoDB!");
     return true;
   } catch (error) {
     isConnected = false;
-    console.warn("\u26A0\uFE0F  Could not connect to MongoDB. The server will run with offline/cached data mode.");
-    console.warn(`   Error details: ${error.message}`);
-    console.warn("   To connect to MongoDB, ensure MongoDB is running locally or set MONGODB_URI in .env with your MongoDB Atlas connection string.");
+    lastDbError = error.message;
+    console.warn("\u26A0\uFE0F  Could not connect to MongoDB:", lastDbError);
     return false;
   }
 }
 function isDbConnected() {
   return isConnected && mongoose.connection.readyState === 1;
 }
-
-// server/routes/api.ts
-import { Router } from "express";
+function getLastError() {
+  return lastDbError;
+}
 
 // server/models/Product.ts
 import mongoose2, { Schema } from "mongoose";
@@ -948,10 +953,14 @@ var INITIAL_THEME = {
 // server/routes/api.ts
 var router = Router();
 router.get("/health", async (_req, res) => {
+  if (!isDbConnected()) {
+    await connectToDatabase().catch(() => false);
+  }
   const connected = isDbConnected();
   res.json({
     status: "ok",
     database: connected ? "connected" : "disconnected",
+    error: getLastError(),
     message: connected ? "MongoDB is connected and operational." : "Running in offline/fallback mode. MongoDB connection not established.",
     timestamp: (/* @__PURE__ */ new Date()).toISOString()
   });
